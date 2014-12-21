@@ -1,0 +1,115 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import sys, datetime, itertools, urllib2, re
+
+def search(response, indicator):
+    pattern = "(?<=" + re.escape(indicator) + "\<\/td\>\<tdclass\=\"right\"\>)[^\<]+(?=\<)"
+    match = re.search(pattern, response)
+    return None if None == match else match.group(0)
+    
+def check(indicator, n):
+    rules = {
+        "Н1": ("min", 10),
+        "Н2": ("min", 15),
+        "Н3": ("min", 50),
+        "Н4": ("max", 120),
+        "Н7": ("max", 800),
+        "Н9.1": ("max", 50),
+        "Н10.1": ("max", 3),
+        "Н12": ("max", 25)
+    }
+    rule = rules[indicator]
+    n = float(n.replace(',','.'))
+    if rule[0] == "min":
+        return n > rule[1]
+    if rule[0] == "max":
+        return n < rule[1]
+    
+def view_hello():
+    print u"---------------------------------------------------------------------------"
+    print u"| Анализ ежемесячных банковских отчётов для ЦБ.                           |"
+    print u"---------------------------------------------------------------------------"
+
+def view_type_in():
+    print u"---------------------------------------------------------------------------"
+    print u"| Введите регистрационный номер банка, чтобы получить статистику по нему. |"
+    print u"| Примеры регистрационных номеров:                                        |"
+    print u"| * Сбербанк - 1481                                                       |"
+    print u"| * Тинькофф Кредитные Системы - 2673                                     |"
+    print u"---------------------------------------------------------------------------"
+
+def view_about():
+    print u"---------------------------------------------------------------------------"
+    print u"| Н1 – норматив достаточности капитала. Отношение собственных средств     |"
+    print u"| банка  к  суммарному объему активов, взвешенных с учетом риска. >10%    |"
+    print u"|                                                                         |"
+    print u"| Н2 – мгновенная ликвидность. Доля собственных обязательств, которые     |"
+    print u"| банк сможет исполнить за день, продав активы. >15%                      |"
+    print u"|                                                                         |"
+    print u"| Н3 – текущая ликвидность. Доля собственных обязательств, которые банк   |"
+    print u"| сможет исполнить за 30 дней, продав активы. >50%                        |"
+    print u"|                                                                         |"
+    print u"| Н4 – норматив долгосрочной ликвидности. Отношение долгосрочных активов  |"
+    print u"| банка к сумме к сумме собственного капитала и краткосрочных             |"
+    print u"| обязательств. <120%                                                     |"
+    print u"|                                                                         |"
+    print u"| Н7 – максимальные крупные кредитные риски. Отношение крупных кредитных  |"
+    print u"| рисков (>5% капитала банка). <800%                                      |"
+    print u"|                                                                         |"
+    print u"| Н9.1 – кредитные гарантии акционерам. Отношение суммы кредитных         |"
+    print u"| гарантий банка, выданных акционерам к капиталу. <50%                    |"
+    print u"|                                                                         |"
+    print u"| Н10.1 – совокупный риск по инсайдерам банка. Отношение кредитных        |"
+    print u"| требований к инсайдерам банка к капиталу. <3%                           |"
+    print u"|                                                                         |"
+    print u"| Н12 – использование капитала для приобретения акций. <25%               |"
+    print u"---------------------------------------------------------------------------"
+
+view_hello()
+while True:
+    view_type_in()
+    regn = int(raw_input())
+
+    today = datetime.date.today()
+    year, month = 2013, 1
+
+    indicators = ["Н1", "Н2", "Н3", "Н4", "Н7", "Н9.1", "Н10.1", "Н12"]
+    print "Дата\t", "\t".join(indicators) + "\tотчётность"
+
+    for x in itertools.product(range(year, today.year + 1), range(month, today.month + 1)):
+
+        try:
+            month = "%02d" % x[1]
+            url = "http://www.cbr.ru/credit/fm135.asp?when=" + str(x[0]) + month + "01&regn=" + str(regn)
+            response = urllib2.urlopen(url).read()
+            response = response.decode('cp1251').encode('utf8')
+            response = re.sub("\s", "", response)
+    
+            N = []
+            status = "[ok]"
+        
+            for indicator in indicators:
+                # extraordinary case for 1st indicator
+                if indicator == "Н1":
+                    n = search(response, "Н1")
+                    if None == n:
+                        n = search(response, "Н1.0")
+                    N.append(n)
+                    if False == check(indicator, n):
+                        status = "[danger]"
+                
+                    continue
+        
+                n = search(response, indicator)
+                N.append(n)
+                if False == check(indicator, n):
+                    status = "[danger]"
+    
+            print str(x[0]) + "-" + str(x[1]) + "\t" + "\t".join(N) + "\t" + status
+    
+            if x == (today.year, today.month):
+                break
+        except:
+            print str(x[0]) + "-" + str(x[1]) + "\t [ошибка при загрузке данных]"
+    view_about()
