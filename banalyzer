@@ -90,18 +90,13 @@ while True:
             status = "[ok]"
         
             for indicator in indicators:
-                # extraordinary case for 1st indicator
-                if indicator == "Н1":
-                    n = search(response, "Н1")
-                    if None == n:
-                        n = search(response, "Н1.0")
-                    N.append(n)
-                    if False == check(indicator, n):
-                        status = "[danger]"
-                
-                    continue
-        
+            
                 n = search(response, indicator)
+            
+                # extraordinary case for 1st indicator
+                if indicator == "Н1" && None == n:
+                    n = search(response, "Н1.0")
+                
                 N.append(n)
                 if False == check(indicator, n):
                     status = "[danger]"
