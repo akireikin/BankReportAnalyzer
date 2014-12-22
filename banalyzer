@@ -94,7 +94,7 @@ while True:
                 n = search(response, indicator)
             
                 # extraordinary case for 1st indicator
-                if indicator == "Н1" && None == n:
+                if indicator == "Н1" and None == n:
                     n = search(response, "Н1.0")
                 
                 N.append(n)
