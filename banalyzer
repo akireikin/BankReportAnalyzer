@@ -9,6 +9,7 @@ def search(response, indicator):
     return None if None == match else match.group(0)
     
 def check(indicator, n):
+    b = .9
     rules = {
         "Н1": ("min", 10),
         "Н2": ("min", 15),
@@ -22,9 +23,9 @@ def check(indicator, n):
     rule = rules[indicator]
     n = float(n.replace(',','.'))
     if rule[0] == "min":
-        return n > rule[1]
+        return n > rule[1]/b
     if rule[0] == "max":
-        return n < rule[1]
+        return n < rule[1]*b
     
 def view_hello():
     print u"---------------------------------------------------------------------------"
